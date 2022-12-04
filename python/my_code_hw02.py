@@ -1,7 +1,7 @@
 #-- my_code_hw02.py
 #-- hw02 GEO1015.2022
-#-- [YOUR NAME]
-#-- [YOUR STUDENT NUMBER] 
+#-- [Longxiang Xu]
+#-- [5722918]
 
 from datetime import datetime
 from pytz import timezone
@@ -12,6 +12,16 @@ import numpy
 import rasterio
 from rasterio import features
 
+# Image is read to a dataset object
+# query xy to check if it is inside the dataset.bounds, if not, raise exception
+# query xy and get its height value, if it equals dataset.nodatavals, raise exception
+# use suncalc to obtain the altitude and azimuth of the sun
+# Obtain the azimuth of the four bounding box point
+# ll, ul, ur, lr, if the azimuth of the sun is between the azimuth of ll and ul,
+# then the point representing the sun will be on the left bounding box edge
+# (y - py) / (bbox.x - px) = tan(az), according to this function obtain the point represent the sun
+# burn the point(x,y) and (px,py), obtain the output np array
+# according to the image np array and the line of sight array, determine whether sun shines here
 
 def is_sunny(dataset, px, py, dt):
     """
