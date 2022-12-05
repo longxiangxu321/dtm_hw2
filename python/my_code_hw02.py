@@ -19,7 +19,7 @@ from rasterio import features
 # Obtain the azimuth of the four bounding box point
 # ll, ul, ur, lr, if the azimuth of the sun is between the azimuth of ll and ul,
 # then the point representing the sun will be on the left bounding box edge
-# (y - py) / (bbox.x - px) = tan(az), according to this function obtain the point represent the sun
+# (y - py) / (x - px) = tan(az), according to this function obtain the point represent the sun
 # burn the point(x,y) and (px,py), obtain the output np array
 # according to the image np array and the line of sight array, determine whether sun shines here
 
