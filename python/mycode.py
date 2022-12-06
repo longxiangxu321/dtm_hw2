@@ -30,7 +30,7 @@ def is_sunny(dataset, px, py, dt):
     # (y - py) / (x - px) = tan(az)
     if az == math.pi / 2:
         sun_r = dataset.bounds.left, py
-    elif az == 1.5 * math.pi:
+    elif az == - (math.pi / 2):
         sun_r = dataset.bounds.right, py
     else:
         llx, lly = dataset.bounds.left, dataset.bounds.bottom
@@ -38,11 +38,12 @@ def is_sunny(dataset, px, py, dt):
         urx, ury = dataset.bounds.right, dataset.bounds.top
         lrx, lry = dataset.bounds.right, dataset.bounds.bottom
 
-        ll_a = math.atan((lly - py) / (llx - px))
-        ul_a = math.atan((uly - py) / (ulx - px)) + math.pi
-        ur_a = math.atan((ury - py) / (urx - px)) - math.pi
-        lr_a = math.atan((lry - py) / (lrx - px))
+        ll_a = math.atan((llx - px) / (lly - py))
+        ul_a = math.atan((ulx - px) / (uly - py)) + math.pi
+        ur_a = math.atan((urx - px) / (ury - py)) - math.pi
+        lr_a = math.atan((lrx - px) / (lry - py))
 
+        breakpoint()
         if ll_a < az <= ul_a:
             sun_r = llx,  (llx - px) / math.tan(az) + py
         elif az > ul_a or az <= ur_a:

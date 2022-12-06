@@ -58,10 +58,9 @@ def is_sunny(dataset, px, py, dt):
     x0, y0 = transfo.transform(px, py)  # return tuple
     possun = suncalc.get_position(time_utc, y0, x0)  # return object sun with altitude and azimuth
     az, al = possun['azimuth'], possun['altitude']
-    # (y - py) / (x - px) = tan(az)
     if az == math.pi / 2:
         sun_r = dataset.bounds.left, py
-    elif az == 1.5 * math.pi:
+    elif az == - (math.pi / 2):
         sun_r = dataset.bounds.right, py
     else:
         llx, lly = dataset.bounds.left, dataset.bounds.bottom
@@ -69,13 +68,14 @@ def is_sunny(dataset, px, py, dt):
         urx, ury = dataset.bounds.right, dataset.bounds.top
         lrx, lry = dataset.bounds.right, dataset.bounds.bottom
 
-        ll_a = math.atan((lly - py) / (llx - px))
-        ul_a = math.atan((uly - py) / (ulx - px)) + math.pi
-        ur_a = math.atan((ury - py) / (urx - px)) - math.pi
-        lr_a = math.atan((lry - py) / (lrx - px))
+        ll_a = math.atan((llx - px) / (lly - py))
+        ul_a = math.atan((ulx - px) / (uly - py)) + math.pi
+        ur_a = math.atan((urx - px) / (ury - py)) - math.pi
+        lr_a = math.atan((lrx - px) / (lry - py))
 
+        # breakpoint()
         if ll_a < az <= ul_a:
-            sun_r = llx, (llx - px) / math.tan(az) + py
+            sun_r = llx,  (llx - px) / math.tan(az) + py
         elif az > ul_a or az <= ur_a:
             sun_r = (uly - py) * math.tan(az) + px, uly
         elif ur_a < az <= lr_a:
@@ -99,7 +99,7 @@ def is_sunny(dataset, px, py, dt):
     LoS = np.multiply(re, data)
     sun_row, sun_col = dataset.index(sun_r[0], sun_r[1])
     # breakpoint()
-    dist = math.dist([px, py], [sun_r[0], sun_r[1]])
+    dist = math.dist([px,py],[sun_r[0], sun_r[1]])
     sun_h = dist * math.tan(al)
     LoS_filtered = np.where(LoS != dataset.nodatavals[0], LoS, -999)
     # breakpoint()
