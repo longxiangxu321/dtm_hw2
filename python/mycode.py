@@ -7,7 +7,7 @@ import math
 import numpy as np
 import rasterio
 from rasterio import features
-
+import time
 
 def is_sunny(dataset, px, py, dt):
     data = dataset.read(1)
@@ -25,7 +25,7 @@ def is_sunny(dataset, px, py, dt):
 
     transfo = pyproj.Transformer.from_crs("EPSG:28992", "EPSG:4326")
     x0, y0 = transfo.transform(px, py)  # return tuple
-    possun = suncalc.get_position(time_utc, x0, y0)  # return object sun with altitude and azimuth
+    possun = suncalc.get_position(time_utc, y0, x0)  # return object sun with altitude and azimuth
     az, al = possun['azimuth'], possun['altitude']
     # (y - py) / (x - px) = tan(az)
     if az == math.pi / 2:
@@ -40,16 +40,16 @@ def is_sunny(dataset, px, py, dt):
 
         ll_a = math.atan((lly - py) / (llx - px))
         ul_a = math.atan((uly - py) / (ulx - px)) + math.pi
-        ur_a = math.atan((ury - py) / (urx - px)) + math.pi
-        lr_a = math.atan((lry - py) / (lrx - px)) + math.pi * 2
+        ur_a = math.atan((ury - py) / (urx - px)) - math.pi
+        lr_a = math.atan((lry - py) / (lrx - px))
 
         if ll_a < az <= ul_a:
             sun_r = llx,  (llx - px) / math.tan(az) + py
-        elif ul_a < az <= ur_a:
+        elif az > ul_a or az <= ur_a:
             sun_r = (uly - py) * math.tan(az) + px, uly
         elif ur_a < az <= lr_a:
             sun_r = urx, (urx - px) / math.tan(az) + py
-        elif (0 <= az <= ll_a) or lr_a <= az <= math.pi * 2:
+        elif lr_a < az <= ll_a:
             sun_r = (lly - py) * math.tan(az) + px, lly
 
     v = {}
@@ -68,8 +68,10 @@ def is_sunny(dataset, px, py, dt):
     LoS = np.multiply(re, data)
     sun_row, sun_col = dataset.index(sun_r[0], sun_r[1])
     # breakpoint()
-    sun_h = data[sun_row, sun_col]
+    dist = math.dist([px,py],[sun_r[0], sun_r[1]])
+    sun_h = dist * math.tan(al)
     LoS_filtered = np.where(LoS != dataset.nodatavals[0], LoS, -999)
+    # breakpoint()
     max_surface = np.max(LoS_filtered)
     if max_surface >= sun_h:
         return False
@@ -81,8 +83,14 @@ def main():
     # -- this gives you a Rasterio dataset
     # -- https://rasterio.readthedocs.io/en/latest/quickstart.html
     d = rasterio.open('../ahn3_data/ahn3_dsm50cm_bk_small.tif')
-    px, py, dt = 85300, 446900, '2022-11-30 11:46'
+    px, py, dt = 85300, 446900, '2022-11-30 08:40'
+    start_time = time.time()
     re = is_sunny(d, px, py, dt)
+    end_time = time.time()
+
+    runtime = end_time - start_time
+
+    print("The runtime of the project is: ", runtime, "seconds")
     print("YES it's sunny 😎") if re == True else print("NO it's not sunny 🔦")
 
 

@@ -8,7 +8,7 @@ from pytz import timezone
 import suncalc #-- https://pypi.org/project/suncalc/
 import pyproj
 import math
-import numpy
+import numpy as np
 import rasterio
 from rasterio import features
 
@@ -56,7 +56,7 @@ def is_sunny(dataset, px, py, dt):
 
     transfo = pyproj.Transformer.from_crs("EPSG:28992", "EPSG:4326")
     x0, y0 = transfo.transform(px, py)  # return tuple
-    possun = suncalc.get_position(time_utc, x0, y0)  # return object sun with altitude and azimuth
+    possun = suncalc.get_position(time_utc, y0, x0)  # return object sun with altitude and azimuth
     az, al = possun['azimuth'], possun['altitude']
     # (y - py) / (x - px) = tan(az)
     if az == math.pi / 2:
@@ -71,16 +71,16 @@ def is_sunny(dataset, px, py, dt):
 
         ll_a = math.atan((lly - py) / (llx - px))
         ul_a = math.atan((uly - py) / (ulx - px)) + math.pi
-        ur_a = math.atan((ury - py) / (urx - px)) + math.pi
-        lr_a = math.atan((lry - py) / (lrx - px)) + math.pi * 2
+        ur_a = math.atan((ury - py) / (urx - px)) - math.pi
+        lr_a = math.atan((lry - py) / (lrx - px))
 
         if ll_a < az <= ul_a:
             sun_r = llx, (llx - px) / math.tan(az) + py
-        elif ul_a < az <= ur_a:
+        elif az > ul_a or az <= ur_a:
             sun_r = (uly - py) * math.tan(az) + px, uly
         elif ur_a < az <= lr_a:
             sun_r = urx, (urx - px) / math.tan(az) + py
-        elif (0 <= az <= ll_a) or lr_a <= az <= math.pi * 2:
+        elif lr_a < az <= ll_a:
             sun_r = (lly - py) * math.tan(az) + px, lly
 
     v = {}
@@ -99,8 +99,10 @@ def is_sunny(dataset, px, py, dt):
     LoS = np.multiply(re, data)
     sun_row, sun_col = dataset.index(sun_r[0], sun_r[1])
     # breakpoint()
-    sun_h = data[sun_row, sun_col]
+    dist = math.dist([px, py], [sun_r[0], sun_r[1]])
+    sun_h = dist * math.tan(al)
     LoS_filtered = np.where(LoS != dataset.nodatavals[0], LoS, -999)
+    # breakpoint()
     max_surface = np.max(LoS_filtered)
     if max_surface >= sun_h:
         return False
