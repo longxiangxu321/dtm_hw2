@@ -102,11 +102,11 @@ def is_sunny(dataset, px, py, dt):
                             out_shape=dataset.shape,
                             all_touched=True,
                             transform=dataset.transform)
-    LoS = np.multiply(re, data)
+
     sun_row, sun_col = dataset.index(sun_r[0], sun_r[1])
-    dist = math.dist(dataset.xy(row, col),dataset.xy(sun_row, sun_col))
+    dist = math.dist(dataset.xy(row, col), dataset.xy(sun_row, sun_col))
     sun_h = dist * math.tan(al) + data[row][col]
-    LoS_filtered = np.where(LoS != dataset.nodatavals[0], LoS, -999)
+    LoS_filtered = np.where(data != dataset.nodatavals[0], data, -999)
     idx = np.where(re == 1)
 
     true_height = []
@@ -120,7 +120,6 @@ def is_sunny(dataset, px, py, dt):
         return np.min(comparison_result) >= 0
     else:
         return np.max(comparison_result) < 0
-    # to compare if all true_height < threshold
 
 
 def some_code_to_help_with_rasterio(dataset, px, py, dt):
