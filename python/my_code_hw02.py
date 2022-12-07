@@ -50,23 +50,29 @@ def is_sunny(dataset, px, py, dt):
     if val == dataset.nodatavals:
         raise Exception("No data value for input point")
 
+    px, py = dataset.xy(row, col)[0], dataset.xy(row,col)[1]
     ams_tz = timezone('Europe/Amsterdam')
     dto = ams_tz.localize(datetime.fromisoformat(dt))
     time_utc = dto.astimezone(timezone('UTC'))
-
+    # breakpoint()
     transfo = pyproj.Transformer.from_crs("EPSG:28992", "EPSG:4326")
-    x0, y0 = transfo.transform(px, py)  # return tuple
-    possun = suncalc.get_position(time_utc, y0, x0)  # return object sun with altitude and azimuth
+    lat, long = transfo.transform(px, py)  # return tuple
+    possun = suncalc.get_position(time_utc, lat= lat, lng= long)  # return object sun with altitude and azimuth
     az, al = possun['azimuth'], possun['altitude']
+    resolution = (dataset.bounds.top - dataset.bounds.bottom) / dataset.height
+    left = dataset.bounds.left + resolution/2
+    right = dataset.bounds.right - resolution/2
+    top = dataset.bounds.top - resolution/2
+    bottom = dataset.bounds.bottom + resolution/2
     if az == math.pi / 2:
-        sun_r = dataset.bounds.left, py
+        sun_r = left, py
     elif az == - (math.pi / 2):
-        sun_r = dataset.bounds.right, py
+        sun_r = right, py
     else:
-        llx, lly = dataset.bounds.left, dataset.bounds.bottom
-        ulx, uly = dataset.bounds.left, dataset.bounds.top
-        urx, ury = dataset.bounds.right, dataset.bounds.top
-        lrx, lry = dataset.bounds.right, dataset.bounds.bottom
+        llx, lly = left, bottom
+        ulx, uly = left, top
+        urx, ury = right, top
+        lrx, lry = right, bottom
 
         ll_a = math.atan((llx - px) / (lly - py))
         ul_a = math.atan((ulx - px) / (uly - py)) + math.pi
@@ -98,16 +104,23 @@ def is_sunny(dataset, px, py, dt):
                             transform=dataset.transform)
     LoS = np.multiply(re, data)
     sun_row, sun_col = dataset.index(sun_r[0], sun_r[1])
-    # breakpoint()
-    dist = math.dist([px,py],[sun_r[0], sun_r[1]])
-    sun_h = dist * math.tan(al)
+    dist = math.dist(dataset.xy(row, col),dataset.xy(sun_row, sun_col))
+    sun_h = dist * math.tan(al) + data[row][col]
     LoS_filtered = np.where(LoS != dataset.nodatavals[0], LoS, -999)
-    # breakpoint()
-    max_surface = np.max(LoS_filtered)
-    if max_surface >= sun_h:
-        return False
+    idx = np.where(re == 1)
+
+    true_height = []
+    for i in range(len(idx[0])):
+        true_height.append(LoS_filtered[idx[0][i]][idx[1][i]])
+    true_height = np.array(true_height)
+    distance = np.sqrt(((idx[0] - row) * resolution) ** 2 + ((idx[1] - col) * resolution) ** 2)
+    height_threshold = distance * np.tan(al) + data[row][col]
+    comparison_result = height_threshold - true_height
+    if data[row][col] <= sun_h:
+        return np.min(comparison_result) >= 0
     else:
-        return True
+        return np.max(comparison_result) < 0
+    # to compare if all true_height < threshold
 
 
 def some_code_to_help_with_rasterio(dataset, px, py, dt):

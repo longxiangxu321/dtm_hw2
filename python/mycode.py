@@ -73,30 +73,30 @@ def is_sunny(dataset, px, py, dt):
                             transform=dataset.transform)
     LoS = np.multiply(re, data)
     sun_row, sun_col = dataset.index(sun_r[0], sun_r[1])
-    # breakpoint()
     dist = math.dist(dataset.xy(row, col),dataset.xy(sun_row, sun_col))
-    sun_h = dist * math.tan(al)
+    sun_h = dist * math.tan(al) + data[row][col]
     LoS_filtered = np.where(LoS != dataset.nodatavals[0], LoS, -999)
     idx = np.where(re == 1)
-    result = np.take(data, idx)
+
     true_height = []
     for i in range(len(idx[0])):
-        true_height.append(data[idx[0][i]][idx[1][i]])
-
+        true_height.append(LoS_filtered[idx[0][i]][idx[1][i]])
+    true_height = np.array(true_height)
     distance = np.sqrt(((idx[0] - row) * resolution) ** 2 + ((idx[1] - col) * resolution) ** 2)
-    height_threshold = distance * np.tan(al)
-    breakpoint()
+    height_threshold = distance * np.tan(al) + data[row][col]
+    comparison_result = height_threshold - true_height
+    if data[row][col] <= sun_h:
+        return np.min(comparison_result) >= 0
+    else:
+        return np.max(comparison_result) < 0
     # to compare if all true_height < threshold
-
-
-    return True
 
 
 def main():
     # -- this gives you a Rasterio dataset
     # -- https://rasterio.readthedocs.io/en/latest/quickstart.html
     d = rasterio.open('../ahn3_data/ahn3_dsm50cm_bk_small.tif')
-    px, py, dt = 85300, 446900, '2022-11-30 12:40'
+    px, py, dt = 85221.213, 446869.490, '2022-11-30 12:40'
     start_time = time.time()
     re = is_sunny(d, px, py, dt)
     end_time = time.time()
